@@ -3,10 +3,7 @@
 
 package com.vandevsam.service;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -24,7 +21,7 @@ public class ServiceMonitor implements Runnable {
 	//fields attached to the service object
 	private int frequency;
 	private Socket currSocket;
-	private String hostname;
+	private String host;
 	private int port;
 	
 	//the following fields can be grouped together
@@ -39,50 +36,37 @@ public class ServiceMonitor implements Runnable {
 		return this.port;
 	}
 	public String getHost(){
-		return this.hostname;
+		return this.host;
 	}
 	public Socket getSocket(){
 		return this.currSocket;
 	}
 	
 	public void setFrequency(int f){
-		this.frequency = f;
+		if (f>=1)
+			this.frequency = f;
+		else
+			this.frequency = 1;
 	}
 	
 	public void setHost(String h){
-		this.hostname = h;
+		this.host = h;
 	}
 	public void setPort (int p){
 		this.port = p;
 	}
 	
-	//constructor instantiates a service with hostname, port, and
+	//constructor instantiates a service with host, port, and
 	//polling frequency
-	public ServiceMonitor(String hostname, int port, int polling){		
-		this.hostname = hostname;
+	public ServiceMonitor(String host, int port, int polling){		
+		this.host = host;
 		this.port = port;
 		this.currSocket = new Socket();
 		if(polling>=1) //check if frequency will be equal or greate than one second
 			this.frequency = polling;
 		else
 			this.frequency = 1;	
-	}	
-	
-/**	//this method was introduced for debugging purposes
-	public static void closeAllConnections(){
-		for(Socket s: sockets.keySet()){
-			try {
-				//check if not already closed
-				if(!s.isClosed()){
-					s.close();
-					socketsStatus.put(s,false);
-				}
-			} catch (IOException e) {
-				System.out.println("Socket already closed");
-				e.printStackTrace();
-			}
-		}
-	}**/
+	}
 	
 	//only one thread will check create a socket at once
 	private synchronized boolean tcpCheck(){	
@@ -91,16 +75,9 @@ public class ServiceMonitor implements Runnable {
 		
 		boolean connected=false;	
 				
-		try(//this is from docs.oracle, 
-			Socket s = new Socket(this.hostname, this.port);				
-			PrintWriter out =
-                new PrintWriter(s.getOutputStream(), true);
-            BufferedReader in =
-                new BufferedReader(
-                    new InputStreamReader(s.getInputStream()));
-            BufferedReader stdIn =
-                new BufferedReader(new InputStreamReader(System.in)
-            )){
+		try(
+				Socket s = new Socket(this.host, this.port);
+			){
 					//check previous value and see if it was connected
 					if(!this.currSocket.isConnected()){
 						//System.out.println("It was unconnected");
@@ -122,13 +99,15 @@ public class ServiceMonitor implements Runnable {
 	}
 	
 	//returns true if caller is successfully registered to be notified of service status
-	//returns false if there is requested service is found or the caller has already been
-	//registered or the hostname/port combo is incorrect
-	public static boolean registerCaller(String hostname, int port, int callerID){
-			
+	//returns false if the requested service is not found or was never connected or the caller 
+	//has already been registered or the host/port combo is incorrect
+	public static boolean registerCaller(String host, int port, int callerID){
+			//s.getInetAddress().toString().replaceAll("/.*", "").equals(host)
 		for (Socket s: sockets.keySet()){
-			if(s.getPort() == port && //TODO check pattern
-			   s.getInetAddress().toString().replaceAll("/.*", "").equals(hostname)){
+			if(s.getPort() == port &&
+			   (s.getInetAddress().getHostName().equals(host) || //in case it's a domain name
+			    s.getInetAddress().getHostAddress().equals(host))) //in case it's an ip address
+			{
 				//add caller to the service
 				//check if callerID hasn't been added before
 				int numCallers = sockets.get(s).size();
@@ -149,6 +128,9 @@ public class ServiceMonitor implements Runnable {
 		return false;
 	}
 	
+	//searches through the sockets and sockets status hashmpas and
+	//returns a hashmap of sockets and their connection statuses as
+	//registered by the caller
 	public static HashMap<Socket,Boolean> notifyCaller(int callerID){
 		HashMap<Socket,Boolean> statuses = new HashMap<>();
 		for(Socket s: socketsStatus.keySet()){

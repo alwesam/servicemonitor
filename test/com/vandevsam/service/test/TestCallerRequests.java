@@ -13,7 +13,7 @@ import com.vandevsam.service.ServiceMonitor;
 public class TestCallerRequests {
 	
 	private static final String localHost = "localhost";
-	private static final String remoteHost = "vandevsam.com";
+	private static final String remoteHost = "108.59.82.39";
 	private static final int httpPort = 80;
 	private static int callerID = 1;
 	private static int frequency = 6;

@@ -19,13 +19,7 @@ public class ServiceMonitorMain {
 		ServiceMonitor service3 = new ServiceMonitor(google,httpPort,10);		
 		new Thread(service3,"google").start();
 		
-		//TODO test the following
-		ServiceMonitor.registerCaller(myWeb, httpPort, 1);	
-		ServiceMonitor.registerCaller(myWeb, httpPort, 2);
-		ServiceMonitor.registerCaller(localHost, mysqlPort, 3);		
-		ServiceMonitor.registerCaller(localHost, httpPort, 4);
-		
-		int i = 10;
+		int i = 1;
 		while (true){
 			try {
 				Thread.sleep(10*1000);			
